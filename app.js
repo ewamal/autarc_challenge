@@ -3,7 +3,7 @@ const app = express();
 require('dotenv').config();
 const PORT = process.env.PORT || 3000;
 const sequelize = require('./config/database');
-
+const db = require('./models');
 
 app.use(express.json());
 
@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
 sequelize.authenticate()
   .then(() => {
     console.log('Connection has been established successfully.');
-    return sequelize.sync();
+    return db.sequelize.sync();
   })
   .then(() => {
     console.log('All models were synchronized successfully.');
