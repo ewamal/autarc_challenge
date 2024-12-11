@@ -1,33 +1,31 @@
-module.exports = (sequelize, DataTypes) => {
-    const Customer = sequelize.define('Customer', {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      hubspotId: {
-        type: DataTypes.STRING,
-        unique: true,
-        allowNull: false,
-      },
-      firstName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      lastName: DataTypes.STRING,
-      email: {
-        type: DataTypes.STRING,
-        unique: true,
-        allowNull: false,
-        validate: {
-          isEmail: true,
-        },
-      },
-    }, {
-      tableName: 'customers',
-      timestamps: false,
-    });
-  
-    return Customer;
-  };
-  
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const Customer = sequelize.define('Customer', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    validate: {
+      isEmail: true,
+    },
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+}, {
+  tableName: 'customers',
+  timestamps: true,
+});
+
+module.exports = Customer;

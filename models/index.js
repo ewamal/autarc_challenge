@@ -1,14 +1,16 @@
-const Sequelize = require('sequelize');
 const sequelize = require('../config/database');
+const Customer = require('./Customer');
 
-const User = require('./User')(sequelize, Sequelize.DataTypes);
-const Customer = require('./Customer')(sequelize, Sequelize.DataTypes);
+const initDB = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Database connected successfully.');
 
-const db = {
-  sequelize,
-  Sequelize,
-  User,
-  Customer,
+    await sequelize.sync({ alter: true });
+    console.log('All models were synchronized successfully.');
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+  }
 };
 
-module.exports = db;
+module.exports = { sequelize, Customer, initDB };
