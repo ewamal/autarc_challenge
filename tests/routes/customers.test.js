@@ -1,12 +1,19 @@
+// tests/routes/customers.test.js
+
 const request = require('supertest');
 const express = require('express');
 const bodyParser = require('body-parser');
 const customerRoutes = require('../../src/routes/customers');
 const errorHandler = require('../../src/middlewares/errorHandler');
 const Customer = require('../../src/models/Customer'); 
+const hubspotService = require('../../src/services/hubspotService');
 const { ValidationError } = require('sequelize');
 
+// Mock the Customer model
 jest.mock('../../src/models/Customer');
+
+// Mock the HubspotService
+jest.mock('../../src/services/hubspotService');
 
 const app = express();
 app.use(bodyParser.json());
@@ -20,14 +27,34 @@ describe('Customer API Endpoints', () => {
   let customerId;
 
   test('POST /api/customers - creates a new customer', async () => {
+    const mockHubspotId = '84024762711'; // Example HubSpot contact ID
     const newCustomer = {
       id: '1',
       name: 'John Doe',
       email: 'john.doe@example.com',
       phone: '1234567890',
+      hubspotId: mockHubspotId,
+      createdAt: '2024-12-11T22:30:13.829Z',
+      updatedAt: '2024-12-11T22:30:13.829Z',
+      save: jest.fn().mockResolvedValue(),
+      toJSON: function() {
+        return {
+          id: this.id,
+          name: this.name,
+          email: this.email,
+          phone: this.phone,
+          hubspotId: this.hubspotId,
+          createdAt: this.createdAt,
+          updatedAt: this.updatedAt,
+        };
+      }
     };
 
+    // Mock Customer.create to return newCustomer
     Customer.create.mockResolvedValue(newCustomer);
+
+    // Mock hubspotService.createContact to return mockHubspotId
+    hubspotService.createContact.mockResolvedValue(mockHubspotId);
 
     const response = await request(app)
       .post('/api/customers')
@@ -38,24 +65,31 @@ describe('Customer API Endpoints', () => {
       })
       .expect(201);
 
-    expect(response.body).toEqual(newCustomer);
+    expect(response.body).toEqual({
+      id: '1',
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      phone: '1234567890',
+      hubspotId: mockHubspotId,
+      createdAt: '2024-12-11T22:30:13.829Z',
+      updatedAt: '2024-12-11T22:30:13.829Z',
+    });
     expect(Customer.create).toHaveBeenCalledWith({
       name: 'John Doe',
       email: 'john.doe@example.com',
       phone: '1234567890',
     });
-
-    customerId = response.body.id;
+    expect(hubspotService.createContact).toHaveBeenCalledWith({
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      phone: '1234567890',
+    });
+    expect(newCustomer.save).toHaveBeenCalled();
   });
 
-  test('POST /api/customers - handles errors', async () => {
+  test('POST /api/customers - handles validation errors', async () => {
+    // Simulate Sequelize ValidationError for invalid email
     const validationError = new ValidationError('Validation Error', [
-      {
-        message: 'Name cannot be empty',
-        type: 'notNull Violation',
-        path: 'name',
-        value: '',
-      },
       {
         message: 'Email must be a valid email address',
         type: 'Validation error',
@@ -64,25 +98,27 @@ describe('Customer API Endpoints', () => {
       },
     ]);
 
+    // Mock Customer.create to reject with ValidationError
     Customer.create.mockRejectedValue(validationError);
 
     const response = await request(app)
       .post('/api/customers')
       .send({
-        name: '',
-        email: 'invalid-email',
+        name: 'John Doe', // Valid name to pass pre-validation
+        email: 'invalid-email', // Invalid email to trigger ValidationError
         phone: '1234567890',
       })
       .expect(400);
 
     expect(response.body).toEqual({
-      message: 'Name cannot be empty, Email must be a valid email address',
+      message: 'Email must be a valid email address',
     });
     expect(Customer.create).toHaveBeenCalledWith({
-      name: '',
+      name: 'John Doe',
       email: 'invalid-email',
       phone: '1234567890',
     });
+    expect(hubspotService.createContact).not.toHaveBeenCalled();
   });
 
   test('GET /api/customers - gets all customers', async () => {
@@ -92,15 +128,22 @@ describe('Customer API Endpoints', () => {
         name: 'John Doe',
         email: 'john.doe@example.com',
         phone: '1234567890',
+        hubspotId: '84024762711',
+        createdAt: '2024-12-11T22:30:13.829Z',
+        updatedAt: '2024-12-11T22:30:13.829Z',
       },
       {
         id: '2',
         name: 'Jane Smith',
         email: 'jane.smith@example.com',
         phone: '0987654321',
+        hubspotId: '84024762712',
+        createdAt: '2024-12-11T22:30:13.829Z',
+        updatedAt: '2024-12-11T22:30:13.829Z',
       },
     ];
 
+    // Mock Customer.findAll to return customers
     Customer.findAll.mockResolvedValue(customers);
 
     const response = await request(app)
@@ -117,8 +160,12 @@ describe('Customer API Endpoints', () => {
       name: 'John Doe',
       email: 'john.doe@example.com',
       phone: '1234567890',
+      hubspotId: '84024762711',
+      createdAt: '2024-12-11T22:30:13.835Z',
+      updatedAt: '2024-12-11T22:30:13.835Z',
     };
 
+    // Mock Customer.findByPk to return customer
     Customer.findByPk.mockResolvedValue(customer);
 
     const response = await request(app)
@@ -130,6 +177,7 @@ describe('Customer API Endpoints', () => {
   });
 
   test('GET /api/customers/:id - returns 404 if customer not found', async () => {
+    // Mock Customer.findByPk to return null
     Customer.findByPk.mockResolvedValue(null);
 
     const response = await request(app)
@@ -145,19 +193,28 @@ describe('Customer API Endpoints', () => {
       id: '1',
       name: 'Jane Doe',
       email: 'jane.doe@example.com',
+      phone: '1234567890', // Phone remains unchanged
+      hubspotId: '84024762711',
+      createdAt: '2024-12-11T22:30:13.835Z',
+      updatedAt: '2024-12-11T22:30:13.835Z',
     };
 
     const mockCustomerInstance = {
       id: '1',
       name: 'John Doe',
       email: 'john.doe@example.com',
-      update: jest.fn().mockImplementation(async (data) => {
-        // Simulate updating the customer instance
-        Object.assign(mockCustomerInstance, data);
-        return mockCustomerInstance;
-      }),
+      phone: '1234567890',
+      hubspotId: '84024762711',
+      createdAt: '2024-12-11T22:30:13.835Z',
+      updatedAt: '2024-12-11T22:30:13.835Z',
+      save: jest.fn().mockResolvedValue(),
     };
+
+    // Mock Customer.findByPk to return mockCustomerInstance
     Customer.findByPk.mockResolvedValue(mockCustomerInstance);
+
+    // Mock hubspotService.updateContact to resolve
+    hubspotService.updateContact.mockResolvedValue();
 
     const response = await request(app)
       .put('/api/customers/1')
@@ -167,15 +224,26 @@ describe('Customer API Endpoints', () => {
       })
       .expect(200);
 
-    expect(response.body).toEqual(updatedCustomer);
-    expect(Customer.findByPk).toHaveBeenCalledWith('1');
-    expect(mockCustomerInstance.update).toHaveBeenCalledWith({
+    expect(response.body).toEqual({
+      id: '1',
       name: 'Jane Doe',
       email: 'jane.doe@example.com',
+      phone: '1234567890',
+      hubspotId: '84024762711',
+      createdAt: '2024-12-11T22:30:13.835Z',
+      updatedAt: '2024-12-11T22:30:13.835Z',
+    });
+    expect(Customer.findByPk).toHaveBeenCalledWith('1');
+    expect(mockCustomerInstance.save).toHaveBeenCalled();
+    expect(hubspotService.updateContact).toHaveBeenCalledWith('84024762711', {
+      name: 'Jane Doe',
+      email: 'jane.doe@example.com',
+      phone: '1234567890', // Existing phone
     });
   });
 
   test('PUT /api/customers/:id - returns 404 if customer not found', async () => {
+    // Mock Customer.findByPk to return null
     Customer.findByPk.mockResolvedValue(null);
 
     const response = await request(app)
@@ -188,6 +256,7 @@ describe('Customer API Endpoints', () => {
 
     expect(response.body).toEqual({ message: 'Customer not found' });
     expect(Customer.findByPk).toHaveBeenCalledWith('999');
+    expect(hubspotService.updateContact).not.toHaveBeenCalled();
   });
 
   test('DELETE /api/customers/:id - deletes customer by ID', async () => {
@@ -197,9 +266,15 @@ describe('Customer API Endpoints', () => {
       name: 'John Doe',
       email: 'john.doe@example.com',
       phone: '1234567890',
+      hubspotId: '84024762711',
+      createdAt: '2024-12-11T22:30:13.835Z',
+      updatedAt: '2024-12-11T22:30:13.835Z',
       destroy: jest.fn().mockResolvedValue(),
     };
     Customer.findByPk.mockResolvedValue(mockCustomerInstance);
+
+    // Mock hubspotService.deleteContact to resolve
+    hubspotService.deleteContact.mockResolvedValue();
 
     const response = await request(app)
       .delete('/api/customers/1')
@@ -208,6 +283,7 @@ describe('Customer API Endpoints', () => {
     expect(response.body).toEqual({});
     expect(Customer.findByPk).toHaveBeenCalledWith('1');
     expect(mockCustomerInstance.destroy).toHaveBeenCalled();
+    expect(hubspotService.deleteContact).toHaveBeenCalledWith('84024762711');
   });
 
   test('DELETE /api/customers/:id - returns 404 if customer not found', async () => {
@@ -220,5 +296,6 @@ describe('Customer API Endpoints', () => {
 
     expect(response.body).toEqual({ message: 'Customer not found' });
     expect(Customer.findByPk).toHaveBeenCalledWith('999');
+    expect(hubspotService.deleteContact).not.toHaveBeenCalled();
   });
 });

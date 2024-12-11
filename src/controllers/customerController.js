@@ -1,15 +1,35 @@
 const Customer = require('../models/Customer');
+const hubspotService = require('../services/hubspotService');
 
 class CustomerController {
   /**
-   * Create a new customer in the database.
+   * Create a new customer in the database and HubSpot.
    */
   async createCustomer(req, res, next) {
     try {
       const { name, email, phone } = req.body;
+
+      // Basic validation
+      if (!name || !email) {
+        return res.status(400).json({ message: 'Name and email are required.' });
+      }
+
+      // Create customer in local database
       const newCustomer = await Customer.create({ name, email, phone });
+
+      // Create contact in HubSpot
+      const hubspotId = await hubspotService.createContact({ name, email, phone });
+
+      // Update local customer with HubSpot ID
+      newCustomer.hubspotId = hubspotId;
+      await newCustomer.save();
+
       res.status(201).json(newCustomer);
     } catch (error) {
+      // Handle duplicate email error
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(409).json({ message: 'Email already exists.' });
+      }
       next(error);
     }
   }
@@ -53,9 +73,24 @@ class CustomerController {
       if (!customer) {
         return res.status(404).json({ message: 'Customer not found' });
       }
-      await customer.update({ name, email, phone });
+
+      // Update local customer
+      if (name) customer.name = name;
+      if (email) customer.email = email;
+      if (phone) customer.phone = phone;
+      await customer.save();
+
+      // Update contact in HubSpot if hubspotId exists
+      if (customer.hubspotId) {
+        await hubspotService.updateContact(customer.hubspotId, { name: customer.name, email: customer.email, phone: customer.phone });
+      }
+
       res.json(customer);
     } catch (error) {
+      // Handle duplicate email error
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(409).json({ message: 'Email already exists.' });
+      }
       next(error);
     }
   }
@@ -70,6 +105,13 @@ class CustomerController {
       if (!customer) {
         return res.status(404).json({ message: 'Customer not found' });
       }
+
+      // Delete contact from HubSpot if hubspotId exists
+      if (customer.hubspotId) {
+        await hubspotService.deleteContact(customer.hubspotId);
+      }
+
+      // Delete customer from local database
       await customer.destroy();
       res.status(204).send();
     } catch (error) {

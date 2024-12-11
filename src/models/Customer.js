@@ -36,7 +36,14 @@ class Customer extends Model {
             isNumeric: { msg: 'Phone must contain only numbers' },
           },
         },
-
+        hubspotId: {
+          type: DataTypes.STRING,
+          allowNull: true,
+          unique: true,
+          validate: {
+            notEmpty: { msg: 'HubSpot ID cannot be empty' },
+          },
+        },
       },
       {
         sequelize,
