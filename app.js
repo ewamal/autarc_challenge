@@ -9,6 +9,7 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.send('Autarc Backend API');
 });
+app.use("/api/customers", customerRoutes);
 
 initDB().then(() => {
   app.listen(PORT, () => {
