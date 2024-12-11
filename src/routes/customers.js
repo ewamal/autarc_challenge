@@ -1,68 +1,20 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const Customer = require("../models/Customer");
+const customerController = require('../controllers/customerController');
 
 // Create a new customer
-router.post("/", async (req, res, next) => {
-  try {
-    const { name, email, phone } = req.body;
-    const customer = await Customer.create({ name, email, phone });
-    res.status(201).json(customer);
-  } catch (error) {
-    next(error);
-  }
-});
+router.post('/', customerController.createCustomer);
 
 // Get all customers
-router.get("/", async (req, res, next) => {
-  try {
-    const customers = await Customer.findAll();
-    res.json(customers);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/', customerController.getAllCustomers);
 
 // Get a customer by ID
-router.get("/:id", async (req, res, next) => {
-  try {
-    const customer = await Customer.findByPk(req.params.id);
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found" });
-    }
-    res.json(customer);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/:id', customerController.getCustomerById);
 
 // Update a customer by ID
-router.put("/:id", async (req, res, next) => {
-  try {
-    const { name, email, phone } = req.body;
-    const customer = await Customer.findByPk(req.params.id);
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found" });
-    }
-    await customer.update({ name, email, phone });
-    res.json(customer);
-  } catch (error) {
-    next(error);
-  }
-});
+router.put('/:id', customerController.updateCustomer);
 
 // Delete a customer by ID
-router.delete("/:id", async (req, res, next) => {
-  try {
-    const customer = await Customer.findByPk(req.params.id);
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found" });
-    }
-    await customer.destroy();
-    res.status(204).send();
-  } catch (error) {
-    next(error);
-  }
-});
+router.delete('/:id', customerController.deleteCustomer);
 
 module.exports = router;
