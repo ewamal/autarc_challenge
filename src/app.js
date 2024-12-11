@@ -3,6 +3,7 @@ const app = express();
 require('dotenv').config();
 const PORT = process.env.PORT || 3000;
 const { initDB } = require('./models');
+const customerRoutes = require('./routes/customers')
 
 app.use(express.json());
 
