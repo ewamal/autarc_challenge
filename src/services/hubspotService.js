@@ -90,7 +90,6 @@ class HubspotService {
    */
   async updateContact(contactId, updateData) {
     try {
-      // Split the full name into firstname and lastname
       const [firstname, ...lastnameParts] = updateData.name.split(' ');
       const lastname = lastnameParts.join(' ');
   

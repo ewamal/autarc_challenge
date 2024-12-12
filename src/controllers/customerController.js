@@ -9,7 +9,6 @@ class CustomerController {
     try {
       const { name, email, phone } = req.body;
 
-      // Basic validation
       if (!name || !email) {
         return res.status(400).json({ message: 'Name and email are required.' });
       }
@@ -26,7 +25,6 @@ class CustomerController {
 
       res.status(201).json(newCustomer);
     } catch (error) {
-      // Handle duplicate email error
       if (error.name === 'SequelizeUniqueConstraintError') {
         return res.status(409).json({ message: 'Email already exists.' });
       }
@@ -87,7 +85,6 @@ class CustomerController {
 
       res.json(customer);
     } catch (error) {
-      // Handle duplicate email error
       if (error.name === 'SequelizeUniqueConstraintError') {
         return res.status(409).json({ message: 'Email already exists.' });
       }
@@ -111,7 +108,6 @@ class CustomerController {
         await hubspotService.deleteContact(customer.hubspotId);
       }
 
-      // Delete customer from local database
       await customer.destroy();
       res.status(204).send();
     } catch (error) {

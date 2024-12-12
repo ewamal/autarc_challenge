@@ -23,12 +23,11 @@ class WebhookController {
           continue;
         }
 
-        const hubspotId = String(objectId); // Ensure objectId is treated as a string
+        const hubspotId = String(objectId);
 
         switch (subscriptionType) {
           case 'contact.creation':
             console.log(`Handling contact creation event for HubSpot ID: ${hubspotId}`);
-            // Add logic for contact creation
             break;
 
           case 'contact.deletion':

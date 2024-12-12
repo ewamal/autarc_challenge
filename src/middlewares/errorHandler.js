@@ -1,6 +1,6 @@
 const { ValidationError, UniqueConstraintError } = require('sequelize');
 
-const errorHandler = (err, req, res, next) => { // eslint-disable-line no-unused-vars
+const errorHandler = (err, req, res, next) => { 
   console.error(err);
 
   let statusCode = 500;

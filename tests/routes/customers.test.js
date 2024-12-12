@@ -27,7 +27,7 @@ describe('Customer API Endpoints', () => {
   let customerId;
 
   test('POST /api/customers - creates a new customer', async () => {
-    const mockHubspotId = '84024762711'; // Example HubSpot contact ID
+    const mockHubspotId = '84024762711';
     const newCustomer = {
       id: '1',
       name: 'John Doe',
@@ -50,10 +50,8 @@ describe('Customer API Endpoints', () => {
       }
     };
 
-    // Mock Customer.create to return newCustomer
     Customer.create.mockResolvedValue(newCustomer);
 
-    // Mock hubspotService.createContact to return mockHubspotId
     hubspotService.createContact.mockResolvedValue(mockHubspotId);
 
     const response = await request(app)
@@ -88,7 +86,6 @@ describe('Customer API Endpoints', () => {
   });
 
   test('POST /api/customers - handles validation errors', async () => {
-    // Simulate Sequelize ValidationError for invalid email
     const validationError = new ValidationError('Validation Error', [
       {
         message: 'Email must be a valid email address',
@@ -98,14 +95,13 @@ describe('Customer API Endpoints', () => {
       },
     ]);
 
-    // Mock Customer.create to reject with ValidationError
     Customer.create.mockRejectedValue(validationError);
 
     const response = await request(app)
       .post('/api/customers')
       .send({
-        name: 'John Doe', // Valid name to pass pre-validation
-        email: 'invalid-email', // Invalid email to trigger ValidationError
+        name: 'John Doe', 
+        email: 'invalid-email', 
         phone: '1234567890',
       })
       .expect(400);
@@ -143,7 +139,6 @@ describe('Customer API Endpoints', () => {
       },
     ];
 
-    // Mock Customer.findAll to return customers
     Customer.findAll.mockResolvedValue(customers);
 
     const response = await request(app)
@@ -165,7 +160,6 @@ describe('Customer API Endpoints', () => {
       updatedAt: '2024-12-11T22:30:13.835Z',
     };
 
-    // Mock Customer.findByPk to return customer
     Customer.findByPk.mockResolvedValue(customer);
 
     const response = await request(app)
@@ -177,7 +171,6 @@ describe('Customer API Endpoints', () => {
   });
 
   test('GET /api/customers/:id - returns 404 if customer not found', async () => {
-    // Mock Customer.findByPk to return null
     Customer.findByPk.mockResolvedValue(null);
 
     const response = await request(app)
@@ -193,7 +186,7 @@ describe('Customer API Endpoints', () => {
       id: '1',
       name: 'Jane Doe',
       email: 'jane.doe@example.com',
-      phone: '1234567890', // Phone remains unchanged
+      phone: '1234567890', 
       hubspotId: '84024762711',
       createdAt: '2024-12-11T22:30:13.835Z',
       updatedAt: '2024-12-11T22:30:13.835Z',
@@ -210,10 +203,8 @@ describe('Customer API Endpoints', () => {
       save: jest.fn().mockResolvedValue(),
     };
 
-    // Mock Customer.findByPk to return mockCustomerInstance
     Customer.findByPk.mockResolvedValue(mockCustomerInstance);
 
-    // Mock hubspotService.updateContact to resolve
     hubspotService.updateContact.mockResolvedValue();
 
     const response = await request(app)
@@ -238,12 +229,11 @@ describe('Customer API Endpoints', () => {
     expect(hubspotService.updateContact).toHaveBeenCalledWith('84024762711', {
       name: 'Jane Doe',
       email: 'jane.doe@example.com',
-      phone: '1234567890', // Existing phone
+      phone: '1234567890', 
     });
   });
 
   test('PUT /api/customers/:id - returns 404 if customer not found', async () => {
-    // Mock Customer.findByPk to return null
     Customer.findByPk.mockResolvedValue(null);
 
     const response = await request(app)
@@ -260,7 +250,6 @@ describe('Customer API Endpoints', () => {
   });
 
   test('DELETE /api/customers/:id - deletes customer by ID', async () => {
-    // Mock the Customer.findByPk method to resolve with a customer instance
     const mockCustomerInstance = {
       id: '1',
       name: 'John Doe',
@@ -273,7 +262,6 @@ describe('Customer API Endpoints', () => {
     };
     Customer.findByPk.mockResolvedValue(mockCustomerInstance);
 
-    // Mock hubspotService.deleteContact to resolve
     hubspotService.deleteContact.mockResolvedValue();
 
     const response = await request(app)
@@ -287,7 +275,6 @@ describe('Customer API Endpoints', () => {
   });
 
   test('DELETE /api/customers/:id - returns 404 if customer not found', async () => {
-    // Mock the Customer.findByPk method to resolve with null
     Customer.findByPk.mockResolvedValue(null);
 
     const response = await request(app)
